@@ -10,12 +10,18 @@ def load_data():
     # 读取User数据
     users_title = ['UserID', 'Gender', 'Age', 'JobID', 'Zip-code']
     users = pd.read_table('./ml-1m/users.dat', sep='::', header=None, names=users_title, engine='python')
+    #改变索引
     users = users.filter(regex='UserID|Gender|Age|JobID')
     users_orig = users.values
+    '''把性别变成0，1'''
     # 改变User数据中性别和年龄
     gender_map = {'F': 0, 'M': 1}
-    users['Gender'] = users['Gender'].map(gender_map) #映射
+    #映射
+    users['Gender'] = users['Gender'].map(gender_map) 
+    '''把年龄变成0，1，2，3，4，5，6'''
     #{1: 0, 18: 4, 35: 1, 56: 5, 25: 6, 50: 3, 45: 2}
+    #enumerate()函数将对象组成一个索引序列。
+    #set()创建集合
     age_map = {val: ii for ii, val in enumerate(set(users['Age']))}
     users['Age'] = users['Age'].map(age_map)
 
@@ -25,11 +31,33 @@ def load_data():
     movies_orig = movies.values
     # 将Title中的年份去掉
     pattern = re.compile(r'^(.*)\((\d+)\)$')
-
+    #映射修改后的Title
     title_map = {val: pattern.match(val).group(1) for ii, val in enumerate(set(movies['Title']))}
     movies['Title'] = movies['Title'].map(title_map)
 
-    # 电影类型转数字字典
+     # 电影Title转数字字典
+    title_set = set()
+    #.str.split()将title分解成一个个单词
+    for val in movies['Title'].str.split():
+        #把title分解的单词加入到title_set集合
+        title_set.update(val)
+
+    title_set.add('<PAD>')
+    title2int = {val: ii for ii, val in enumerate(title_set)}
+
+    # 将电影Title转成等长数字列表，长度是15
+    title_count = 15
+    #title_map为{电影名：数字}的字典
+    title_map = {val: [title2int[row] for row in val.split()] for ii, val in enumerate(set(movies['Title']))}
+
+    for key in title_map:
+        for cnt in range(title_count - len(title_map[key])):
+            #若<15，用<PAD>对应的索引号在后面补充
+            title_map[key].insert(len(title_map[key]) + cnt, title2int['<PAD>'])
+    #此时的电影名为一组长度为15的数字数组
+    movies['Title'] = movies['Title'].map(title_map)
+    
+    # 电影类型转数字字典（同理电影名）
     genres_set = set()
     for val in movies['Genres'].str.split('|'):
         genres_set.update(val)
@@ -45,24 +73,6 @@ def load_data():
             genres_map[key].insert(len(genres_map[key]) + cnt, genres2int['<PAD>'])
 
     movies['Genres'] = movies['Genres'].map(genres_map)
-
-    # 电影Title转数字字典
-    title_set = set()
-    for val in movies['Title'].str.split():
-        title_set.update(val)
-
-    title_set.add('<PAD>')
-    title2int = {val: ii for ii, val in enumerate(title_set)}
-
-    # 将电影Title转成等长数字列表，长度是15
-    title_count = 15
-    title_map = {val: [title2int[row] for row in val.split()] for ii, val in enumerate(set(movies['Title']))}
-
-    for key in title_map:
-        for cnt in range(title_count - len(title_map[key])):
-            title_map[key].insert(len(title_map[key]) + cnt, title2int['<PAD>'])
-
-    movies['Title'] = movies['Title'].map(title_map)
 
     # 读取评分数据集
     ratings_title = ['UserID', 'MovieID', 'ratings', 'timestamps']
