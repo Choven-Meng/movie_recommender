@@ -68,7 +68,7 @@ def load_data():
     # 将电影类型转成等长数字列表，长度是18
     genres_map = {val: [genres2int[row] for row in val.split('|')] for ii, val in enumerate(set(movies['Genres']))}
 
-    for key in genres_map:
+    for key in genres_map: 
         for cnt in range(max(genres2int.values()) - len(genres_map[key])):
             genres_map[key].insert(len(genres_map[key]) + cnt, genres2int['<PAD>'])
 
