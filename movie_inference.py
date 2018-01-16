@@ -137,26 +137,31 @@ def get_movie_cnn_layer(movie_titles):
                                                name="movie_title_embed_matrix")
         movie_title_embed_layer = tf.nn.embedding_lookup(movie_title_embed_matrix, movie_titles,
                                                          name="movie_title_embed_layer")
+        #在最后一维增加维度
         movie_title_embed_layer_expand = tf.expand_dims(movie_title_embed_layer, -1)
 
     # 对文本嵌入层使用不同尺寸的卷积核做卷积和最大池化
     pool_layer_lst = []
     for window_size in window_sizes:
         with tf.name_scope("movie_txt_conv_maxpool_{}".format(window_size)):
+            #卷积层的参数：前两个维度是filter的尺寸，第三个是当前层的深度，第四个filter的深度
             filter_weights = tf.Variable(tf.truncated_normal([window_size, embed_dim, 1, filter_num], stddev=0.1),
                                          name="filter_weights")
+            #偏置参数，filter的深度
             filter_bias = tf.Variable(tf.constant(0.1, shape=[filter_num]), name="filter_bias")
 
             conv_layer = tf.nn.conv2d(movie_title_embed_layer_expand, filter_weights, [1, 1, 1, 1], padding="VALID",
                                       name="conv_layer")
             relu_layer = tf.nn.relu(tf.nn.bias_add(conv_layer, filter_bias), name="relu_layer")
 
+            #第二个参数过滤器尺寸，第三个参数为步长
             maxpool_layer = tf.nn.max_pool(relu_layer, [1, sentences_size - window_size + 1, 1, 1], [1, 1, 1, 1],
                                            padding="VALID", name="maxpool_layer")
             pool_layer_lst.append(maxpool_layer)
 
     # Dropout层
     with tf.name_scope("pool_dropout"):
+        #在第三维上做连接
         pool_layer = tf.concat(pool_layer_lst, 3, name="pool_layer")
         max_num = len(window_sizes) * filter_num
         pool_layer_flat = tf.reshape(pool_layer, [-1, 1, max_num], name="pool_layer_flat")
