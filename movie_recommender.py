@@ -20,12 +20,13 @@ def reommend_same_type_movie(movie_id_val, top_k=20):
         # Load saved model
         loader = tf.train.import_meta_graph(save_dir + '.meta')
         loader.restore(sess, save_dir)
-
+        #余弦相似度
         norm_movie_matrics = tf.sqrt(tf.reduce_sum(tf.square(movie_matrics), 1, keep_dims=True))
         normalized_movie_matrics = movie_matrics / norm_movie_matrics
 
         # 推荐同类型的电影
         probs_embeddings = (movie_matrics[movieid2idx[movie_id_val]]).reshape([1, 200])
+        #=.transpose()转置函数
         probs_similarity = tf.matmul(probs_embeddings, tf.transpose(normalized_movie_matrics))
         sim = (probs_similarity.eval())
         #     results = (-sim[0]).argsort()[0:top_k]
@@ -34,6 +35,7 @@ def reommend_same_type_movie(movie_id_val, top_k=20):
         print("您看的电影是：{}".format(movies_orig[movieid2idx[movie_id_val]]))
         print("以下是给您的推荐：")
         p = np.squeeze(sim)
+        #argsort函数返回的是数组值从小到大的索引值
         p[np.argsort(p)[:-top_k]] = 0
         p = p / np.sum(p)
         results = set()
